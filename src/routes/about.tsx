@@ -20,12 +20,12 @@ function AboutPage() {
       <PageHero
         eyebrow="About YEP"
         title={
-  <>
-    Born out of empathy.
-    <br />
-    Built for access.
-  </>
-}
+          <>
+            Born out of empathy.
+            <br />
+            Built for access.
+          </>
+        }
         description="YEP Initiative, short for Yael Educational Pathway, is a youth-led educational initiative founded in 2024 to help Ethiopian students access and navigate international education opportunities.
 YEP was created in response to a simple reality: many capable students have the ambition to pursue education opportunities but do not always have access to reliable information, practical guidance, mentorship, or supportive systems.
 Our work focuses on closing these gaps.
