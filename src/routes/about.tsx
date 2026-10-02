@@ -19,8 +19,18 @@ function AboutPage() {
     <>
       <PageHero
         eyebrow="About YEP"
-        title="A youth-led pathway to global education."
-        description="YEP Initiative was founded in 2024 to make international education opportunities understandable and reachable for every Ethiopian student — regardless of background, location, or connections."
+        title={
+  <>
+    Born out of empathy.
+    <br />
+    Built for access.
+  </>
+}
+        description="YEP Initiative, short for Yael Educational Pathway, is a youth-led educational initiative founded in 2024 to help Ethiopian students access and navigate international education opportunities.
+YEP was created in response to a simple reality: many capable students have the ambition to pursue education opportunities but do not always have access to reliable information, practical guidance, mentorship, or supportive systems.
+Our work focuses on closing these gaps.
+We provide structured educational guidance, training, mentorship, resources, and community support while promoting independent application as an important part of the student journey.
+"
       />
       <section className="section-pad">
         <div className="container-yep grid gap-10 md:grid-cols-2">

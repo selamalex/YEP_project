@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/site-data";
-import { Logo } from "./Logo";
+import Logo from "../../assets/logo-yep.png";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,9 @@ export function Navbar() {
       )}
     >
       <div className="container-yep flex h-18 items-center justify-between gap-4 py-3">
-        <Logo />
+       <div className="h-20 flex items-center justify-left">
+  <a href="/" ><img src={Logo} alt="YEP Logo" className="h-30 w-auto object-contain" /> </a>
+</div>
 
         <nav className="hidden items-center gap-1 xl:flex">
           {navLinks.map((link) => (

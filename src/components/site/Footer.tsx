@@ -1,14 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Send, Linkedin, Music2 } from "lucide-react";
 import { navLinks, socials } from "@/lib/site-data";
-import { Logo } from "./Logo";
+import Logo from "../../assets/logo-yep.png";
 
 export function Footer() {
   return (
     <footer className="border-t border-border bg-surface">
       <div className="container-yep grid gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <Logo />
+          <div className="h-20 flex items-center justify-left">
+  <img src={Logo} alt="YEP Logo" className="h-40 w-auto object-contain" />
+</div>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted-foreground">
             Making international education more accessible to Ethiopian students.
           </p>
