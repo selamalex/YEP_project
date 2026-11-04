@@ -300,3 +300,26 @@
   background-size: 200% 200%;
   animation: yep-drift 16s ease-in-out infinite;
 }
+
+
+/*
+ * Hide browser native date/time picker indicators
+ * so only our custom icon button displays.
+ */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+input[type="date"]::-webkit-inner-spin-button,
+input[type="time"]::-webkit-inner-spin-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}

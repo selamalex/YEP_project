@@ -6,6 +6,7 @@ import {
   Edit3,
   Trash2,
   Eye,
+  EyeOff,
   LogOut,
   CheckCircle2,
   Clock,
@@ -18,13 +19,15 @@ import {
   ExternalLink,
   MessageSquare,
   Lock,
+  KeyRound,
   Loader2,
   Image as ImageIcon,
   Check,
   ArrowLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type FormEvent, type ChangeEvent } from "react";
+import { cn } from "@/lib/utils";
 import { pageMeta } from "@/lib/seo";
 import {
   supabase,
@@ -41,13 +44,20 @@ import {
   type DatabaseEvent,
   type ContactSubmission,
 } from "@/lib/supabase";
+import { ResponsiveImage } from "@/components/site/ResponsiveImage";
+import {
+  formatEventDate,
+  formatEventDateTime,
+  parseIsoDateTime,
+  combineDateTimeToIso,
+} from "@/lib/date-utils";
 
 export const Route = createFileRoute("/admin")({
   head: () => pageMeta("Admin Dashboard", "Manage YEP Initiative events and contact submissions."),
   component: AdminPage,
 });
 
-type TabType = "overview" | "events" | "messages";
+type TabType = "overview" | "events" | "messages" | "password";
 
 export function AdminPage() {
   const [sessionUser, setSessionUser] = useState<{ id: string; email: string } | null>(null);
@@ -336,6 +346,15 @@ export function AdminPage() {
               {sessionUser.email}
             </span>
             <button
+              onClick={() => setActiveTab("password")}
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              title="Change Password"
+            >
+              <KeyRound className="size-3.5" />
+              <span className="hidden sm:inline">Change Password</span>
+            </button>
+            <button
               onClick={handleLogout}
               type="button"
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
@@ -354,32 +373,29 @@ export function AdminPage() {
         <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "overview"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${activeTab === "overview"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab("events")}
-            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "events"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${activeTab === "events"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Calendar className="size-4" />
             Events ({events.length})
           </button>
           <button
             onClick={() => setActiveTab("messages")}
-            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${
-              activeTab === "messages"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${activeTab === "messages"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
           >
             <Mail className="size-4" />
             Contact Messages
@@ -388,6 +404,16 @@ export function AdminPage() {
                 {messages.filter((m) => !m.is_read).length} new
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab("password")}
+            className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold transition-colors ${activeTab === "password"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+          >
+            <KeyRound className="size-4" />
+            Change Password
           </button>
         </div>
 
@@ -422,6 +448,10 @@ export function AdminPage() {
               loading={loadingData}
               onReload={loadDashboardData}
             />
+          )}
+
+          {activeTab === "password" && (
+            <AdminChangePasswordTab userEmail={sessionUser.email} />
           )}
         </div>
       </div>
@@ -536,15 +566,14 @@ function AdminOverviewTab({
                 <div>
                   <p className="text-sm font-semibold text-foreground">{e.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(e.start_date).toLocaleDateString()} · {e.venue}
+                    {formatEventDateTime(e.start_date, e.end_date)} · {e.venue}
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                    e.is_published
-                      ? "bg-primary/10 text-primary border border-primary/20"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${e.is_published
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-muted text-muted-foreground"
+                    }`}
                 >
                   {e.is_published ? "Published" : "Draft"}
                 </span>
@@ -714,21 +743,19 @@ function AdminEventsTab({
                 <div>
                   {e.cover_image && (
                     <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-muted">
-                      <img
+                      <ResponsiveImage
                         src={e.cover_image}
                         alt={e.title}
-                        className="h-full w-full object-cover"
                       />
                     </div>
                   )}
 
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        e.is_published
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${e.is_published
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted text-muted-foreground"
+                        }`}
                     >
                       {e.is_published ? "Published" : "Draft (Unpublished)"}
                     </span>
@@ -741,7 +768,7 @@ function AdminEventsTab({
 
                   <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="size-3.5 text-primary" />
-                    <span>{new Date(e.start_date).toLocaleString()}</span>
+                    <span>{formatEventDateTime(e.start_date, e.end_date)}</span>
                   </p>
 
                   <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -834,21 +861,16 @@ function AdminEventsTab({
               <div className="surface-card p-6">
                 {previewEvent.cover_image && (
                   <div className="relative mb-5 aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-muted">
-                    <img
+                    <ResponsiveImage
                       src={previewEvent.cover_image}
                       alt={previewEvent.title}
-                      className="h-full w-full object-cover"
                     />
                   </div>
                 )}
                 <h3 className="text-xl font-bold">{previewEvent.title}</h3>
                 <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="size-4 text-primary" />{" "}
-                  {new Date(previewEvent.start_date).toLocaleDateString()} ·{" "}
-                  {new Date(previewEvent.start_date).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatEventDateTime(previewEvent.start_date, previewEvent.end_date)}
                 </p>
                 <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="size-4 text-primary" /> {previewEvent.venue}
@@ -898,12 +920,29 @@ function EventFormModal({
   const [shortDesc, setShortDesc] = useState(event?.short_description || "");
   const [fullDesc, setFullDesc] = useState(event?.full_description || "");
   const [venue, setVenue] = useState(event?.venue || "");
-  const [startDate, setStartDate] = useState(
-    event?.start_date ? new Date(event.start_date).toISOString().slice(0, 16) : "",
-  );
-  const [endDate, setEndDate] = useState(
-    event?.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : "",
-  );
+  const initialStart = parseIsoDateTime(event?.start_date);
+  const initialEnd = parseIsoDateTime(event?.end_date);
+
+  const [startDate, setStartDate] = useState(initialStart.date);
+  const [startTime, setStartTime] = useState(initialStart.time);
+  const [endDate, setEndDate] = useState(initialEnd.date);
+  const [endTime, setEndTime] = useState(initialEnd.time);
+
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const startTimeRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+  const endTimeRef = useRef<HTMLInputElement>(null);
+
+  const openPicker = (ref: React.RefObject<HTMLInputElement | null>) => {
+    if (ref.current) {
+      try {
+        ref.current.showPicker();
+      } catch {
+        ref.current.focus();
+      }
+    }
+  };
+
   const [registrationLink, setRegistrationLink] = useState(event?.registration_link || "");
   const [isPublished, setIsPublished] = useState(event?.is_published || false);
   const [coverImageUrl, setCoverImageUrl] = useState(event?.cover_image || "");
@@ -945,14 +984,22 @@ function EventFormModal({
       setFormError("Venue or location is required.");
       return;
     }
-    if (!startDate) {
-      setFormError("Start date and time is required.");
+    if (!startDate.trim()) {
+      setFormError("Start date is required.");
       return;
     }
     if (!fullDesc.trim()) {
       setFormError("Full description is required.");
       return;
     }
+
+    const startIso = combineDateTimeToIso(startDate, startTime);
+    if (!startIso) {
+      setFormError("A valid start date is required.");
+      return;
+    }
+
+    const endIso = endDate.trim() ? combineDateTimeToIso(endDate, endTime) : null;
 
     setIsSubmitting(true);
     try {
@@ -961,8 +1008,8 @@ function EventFormModal({
         short_description: shortDesc.trim() || null,
         full_description: fullDesc.trim(),
         venue: venue.trim(),
-        start_date: new Date(startDate).toISOString(),
-        end_date: endDate ? new Date(endDate).toISOString() : null,
+        start_date: startIso,
+        end_date: endIso,
         registration_link: registrationLink.trim() || null,
         is_published: isPublished,
         cover_image: coverImageUrl.trim() || null,
@@ -1017,10 +1064,9 @@ function EventFormModal({
 
             {coverImageUrl ? (
               <div className="mt-2 relative aspect-video w-full max-w-md overflow-hidden rounded-xl border border-border bg-muted">
-                <img
+                <ResponsiveImage
                   src={coverImageUrl}
                   alt="Cover Preview"
-                  className="h-full w-full object-cover"
                 />
                 <button
                   type="button"
@@ -1084,30 +1130,121 @@ function EventFormModal({
             />
           </div>
 
-          {/* Dates & Times */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Start Date & Time *
-              </label>
-              <input
-                type="datetime-local"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
-              />
+          {/* Separate Dates & Times */}
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Start Date * <span className="text-primary font-normal">(Required)</span>
+                </label>
+                <div className="relative mt-1.5 flex items-center">
+                  <input
+                    ref={startDateRef}
+                    type="date"
+                    required
+                    value={startDate}
+                    onClick={() => openPicker(startDateRef)}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className={cn(
+                      inputClass,
+                      "mt-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:appearance-none",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openPicker(startDateRef)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-lg text-black dark:text-white hover:bg-muted/70 transition-colors"
+                    title="Open calendar"
+                    aria-label="Open calendar"
+                  >
+                    <Calendar className="size-4 text-black dark:text-white" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Start Time <span className="text-muted-foreground/75 font-normal">(Optional)</span>
+                </label>
+                <div className="relative mt-1.5 flex items-center">
+                  <input
+                    ref={startTimeRef}
+                    type="time"
+                    value={startTime}
+                    onClick={() => openPicker(startTimeRef)}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className={cn(
+                      inputClass,
+                      "mt-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:appearance-none",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openPicker(startTimeRef)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-lg text-black dark:text-white hover:bg-muted/70 transition-colors"
+                    title="Open time picker"
+                    aria-label="Open time picker"
+                  >
+                    <Clock className="size-4 text-black dark:text-white" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                End Date & Time (Optional)
-              </label>
-              <input
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={inputClass}
-              />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  End Date <span className="text-muted-foreground/75 font-normal">(Optional)</span>
+                </label>
+                <div className="relative mt-1.5 flex items-center">
+                  <input
+                    ref={endDateRef}
+                    type="date"
+                    value={endDate}
+                    onClick={() => openPicker(endDateRef)}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className={cn(
+                      inputClass,
+                      "mt-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:appearance-none",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openPicker(endDateRef)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-lg text-black dark:text-white hover:bg-muted/70 transition-colors"
+                    title="Open calendar"
+                    aria-label="Open calendar"
+                  >
+                    <Calendar className="size-4 text-black dark:text-white" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  End Time <span className="text-muted-foreground/75 font-normal">(Optional)</span>
+                </label>
+                <div className="relative mt-1.5 flex items-center">
+                  <input
+                    ref={endTimeRef}
+                    type="time"
+                    value={endTime}
+                    onClick={() => openPicker(endTimeRef)}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className={cn(
+                      inputClass,
+                      "mt-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:appearance-none",
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openPicker(endTimeRef)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-lg text-black dark:text-white hover:bg-muted/70 transition-colors"
+                    title="Open time picker"
+                    aria-label="Open time picker"
+                  >
+                    <Clock className="size-4 text-black dark:text-white" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1327,13 +1464,12 @@ function AdminMessagesTab({
                     handleToggleRead(m);
                   }
                 }}
-                className={`surface-card p-5 cursor-pointer transition-all border ${
-                  selectedMessage?.id === m.id
-                    ? "border-primary bg-primary/5"
-                    : m.is_read
-                      ? "border-border opacity-85"
-                      : "border-primary/40 bg-card font-semibold"
-                }`}
+                className={`surface-card p-5 cursor-pointer transition-all border ${selectedMessage?.id === m.id
+                  ? "border-primary bg-primary/5"
+                  : m.is_read
+                    ? "border-border opacity-85"
+                    : "border-primary/40 bg-card font-semibold"
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1412,3 +1548,229 @@ function AdminMessagesTab({
   );
 }
 
+
+
+// =============================================================================
+// SUB-TAB 4: CHANGE PASSWORD TAB
+// =============================================================================
+
+function AdminChangePasswordTab({ userEmail }: { userEmail: string }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    if (!currentPassword) {
+      setErrorMessage("Please enter your current password.");
+      return;
+    }
+    if (!newPassword) {
+      setErrorMessage("Please enter your new password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setErrorMessage("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setErrorMessage("New password must be different from your current password.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMessage("New password and confirmation do not match.");
+      return;
+    }
+
+    if (!supabase) {
+      setErrorMessage("Supabase client is not available.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Re-authenticate to securely verify the currently logged-in admin's current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error(
+          "Current password is incorrect. Please verify your credentials and try again.",
+        );
+      }
+
+      // 2. Update to new password via Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setSuccessMessage(
+        "Your password has been changed successfully. You can now use your new password for future sign-ins.",
+      );
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      console.error("Change password error:", err);
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to update password. Please check your current password and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-xl mx-auto">
+      <div className="surface-card p-7 sm:p-8 shadow-lift border border-border">
+        <div className="flex items-center gap-3.5 border-b border-border pb-5">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <KeyRound className="size-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Change Password</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Securely update administrator password for{" "}
+              <span className="font-semibold text-foreground">{userEmail}</span>
+            </p>
+          </div>
+        </div>
+
+        {successMessage && (
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-foreground animate-in fade-in-50">
+            <CheckCircle2 className="size-5 shrink-0 text-emerald-500 mt-0.5" />
+            <div>
+              <p className="font-semibold text-emerald-600 dark:text-emerald-400">Password Changed</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{successMessage}</p>
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground animate-in fade-in-50">
+            <AlertCircle className="size-5 shrink-0 text-destructive mt-0.5" />
+            <p>{errorMessage}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          {/* Current Password */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Current Password *
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                type={showCurrent ? "text" : "password"}
+                required
+                placeholder="Enter your current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 pr-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                title={showCurrent ? "Hide password" : "Show password"}
+              >
+                {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* New Password */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              New Password *
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                type={showNew ? "text" : "password"}
+                required
+                minLength={6}
+                placeholder="Minimum 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 pr-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                title={showNew ? "Hide password" : "Show password"}
+              >
+                {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Must be at least 6 characters and different from your current password.
+            </p>
+          </div>
+
+          {/* Confirm New Password */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Confirm New Password *
+            </label>
+            <div className="relative mt-1.5">
+              <input
+                type={showConfirm ? "text" : "password"}
+                required
+                minLength={6}
+                placeholder="Re-enter your new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 pr-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                title={showConfirm ? "Hide password" : "Show password"}
+              >
+                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-gradient-brand flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Updating Password...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

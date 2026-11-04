@@ -3,6 +3,7 @@ import { useLocation } from "@tanstack/react-router";
 import { MessageSquare, X, Send, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { chatWithMascotFn } from "@/server/chat";
 import { getPublishedEvents, type DatabaseEvent } from "@/lib/supabase";
+import { ChatMarkdown } from "./ChatMarkdown";
 import yepeebotImg from "@/assets/Yepeebot.png";
 
 type Message = {
@@ -125,7 +126,7 @@ export function MascotChatbot() {
     <aside aria-label="YEP Mascot Assistant" className="fixed bottom-5 right-5 z-40">
       {/* Floating Chat Panel */}
       {isOpen && (
-        <div className="surface-card mb-4 flex h-[520px] w-[calc(100vw-2.5rem)] max-w-[390px] flex-col overflow-hidden shadow-lift border border-border animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className="surface-card mb-4 flex h-[530px] w-[calc(100vw-2.5rem)] max-w-[420px] flex-col overflow-hidden shadow-lift border border-border animate-in fade-in-0 zoom-in-95 duration-200">
           {/* Header */}
           <div className="bg-card flex items-center justify-between border-b border-border px-5 py-3.5">
             <div className="flex items-center gap-3">
@@ -138,7 +139,7 @@ export function MascotChatbot() {
                 <span className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-foreground">YepeeBot</h3>
+                <h3 className="text-sm font-bold text-foreground">Yepee</h3>
                 <p className="text-[11px] text-muted-foreground">Official YEP Assistant</p>
               </div>
             </div>
@@ -186,12 +187,17 @@ export function MascotChatbot() {
                 )}
 
                 <div
-                  className={`max-w-[82%] rounded-2xl px-4 py-2.5 leading-relaxed text-xs sm:text-sm ${m.role === "user"
-                    ? "bg-gradient-brand text-primary-foreground font-medium rounded-br-xs"
-                    : "bg-muted/70 text-foreground border border-border/60 rounded-bl-xs whitespace-pre-line"
-                    }`}
+                  className={`rounded-2xl px-3.5 py-2.5 leading-relaxed text-xs sm:text-sm ${
+                    m.role === "user"
+                      ? "max-w-[82%] bg-gradient-brand text-primary-foreground font-medium rounded-br-xs whitespace-pre-wrap"
+                      : "max-w-[88%] sm:max-w-[90%] bg-muted/70 text-foreground border border-border/60 rounded-bl-xs"
+                  }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" ? (
+                    <ChatMarkdown content={m.content} />
+                  ) : (
+                    m.content
+                  )}
                 </div>
               </div>
             ))}

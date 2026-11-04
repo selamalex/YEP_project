@@ -7,6 +7,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { socials } from "@/lib/site-data";
 import { pageMeta } from "@/lib/seo";
 import { getPublishedEvents, type DatabaseEvent } from "@/lib/supabase";
+import { ResponsiveImage } from "@/components/site/ResponsiveImage";
+import { formatEventDateTime } from "@/lib/date-utils";
 
 export const Route = createFileRoute("/events")({
   head: () =>
@@ -16,38 +18,6 @@ export const Route = createFileRoute("/events")({
     ),
   component: EventsPage,
 });
-
-function formatEventDate(isoDate: string): string {
-  try {
-    const d = new Date(isoDate);
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return isoDate;
-  }
-}
-
-function formatEventTime(startDate: string, endDate?: string | null): string {
-  try {
-    const s = new Date(startDate);
-    const startStr = s.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    if (!endDate) return startStr;
-    const e = new Date(endDate);
-    const endStr = e.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    return `${startStr} – ${endStr}`;
-  } catch {
-    return "";
-  }
-}
 
 function EventCard({ e, upcoming }: { e: DatabaseEvent; upcoming: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -60,10 +30,10 @@ function EventCard({ e, upcoming }: { e: DatabaseEvent; upcoming: boolean }) {
       <div>
         {e.cover_image && (
           <div className="relative mb-5 aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-muted">
-            <img
+            <ResponsiveImage
               src={e.cover_image}
               alt={e.title}
-              className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]"
+              className="transition-transform duration-500 hover:scale-[1.02]"
               loading="lazy"
             />
           </div>
@@ -73,9 +43,7 @@ function EventCard({ e, upcoming }: { e: DatabaseEvent; upcoming: boolean }) {
 
         <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4 shrink-0 text-primary" />
-          <span>
-            {formatEventDate(e.start_date)} · {formatEventTime(e.start_date, e.end_date)}
-          </span>
+          <span>{formatEventDateTime(e.start_date, e.end_date)}</span>
         </p>
 
         <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
