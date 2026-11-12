@@ -16,6 +16,7 @@ import {
   Search,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
   ExternalLink,
   MessageSquare,
   Lock,
@@ -950,6 +951,7 @@ function EventFormModal({
   // Upload state
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -958,7 +960,20 @@ function EventFormModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset input value so selecting the same file again triggers onChange
+    e.target.value = "";
+
     setUploadError(null);
+    setUploadWarning(null);
+
+    // If file is above 50MB, show notice
+    const sizeInMb = file.size / (1024 * 1024);
+    if (sizeInMb > 50) {
+      setUploadWarning(
+        `Uploading images this large (${sizeInMb.toFixed(1)} MB) may cause your free Supabase storage limit to decrease quickly.`,
+      );
+    }
+
     setUploadProgress(0);
 
     try {
@@ -1070,7 +1085,11 @@ function EventFormModal({
                 />
                 <button
                   type="button"
-                  onClick={() => setCoverImageUrl("")}
+                  onClick={() => {
+                    setCoverImageUrl("");
+                    setUploadWarning(null);
+                    setUploadError(null);
+                  }}
                   className="absolute top-2 right-2 rounded-full bg-background/80 p-1.5 text-foreground backdrop-blur-sm hover:bg-background"
                   title="Remove image"
                 >
@@ -1082,7 +1101,7 @@ function EventFormModal({
                 <ImageIcon className="size-8 text-muted-foreground mb-2" />
                 <p className="text-sm font-medium text-foreground">Upload Cover Image</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supported formats: JPEG, PNG, WEBP, GIF (Max 5MB)
+                  Supported formats: JPEG, PNG, WEBP, GIF
                 </p>
                 <label className="bg-gradient-brand mt-4 cursor-pointer rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground shadow-soft">
                   <Upload className="size-3.5 inline mr-1.5" /> Choose File
@@ -1107,6 +1126,13 @@ function EventFormModal({
                 <span className="text-xs font-semibold text-muted-foreground">
                   {uploadProgress}%
                 </span>
+              </div>
+            )}
+
+            {uploadWarning && (
+              <div className="mt-2.5 flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <p>{uploadWarning}</p>
               </div>
             )}
 

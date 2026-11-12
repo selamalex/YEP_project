@@ -177,15 +177,10 @@ export async function uploadEventCoverImage(
 ): Promise<string> {
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  // Validation: format and size
+  // Validation: format
   const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   if (!allowedTypes.includes(file.type)) {
     throw new Error("Invalid file type. Only JPEG, PNG, WEBP, and GIF are supported.");
-  }
-
-  const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-  if (file.size > maxSizeInBytes) {
-    throw new Error("File size exceeds 5MB limit.");
   }
 
   onProgress?.(10);
@@ -203,6 +198,15 @@ export async function uploadEventCoverImage(
 
   if (uploadError) {
     console.error("Storage upload error:", uploadError);
+    if (
+      uploadError.message?.toLowerCase().includes("exceeded") ||
+      uploadError.message?.toLowerCase().includes("size") ||
+      uploadError.message?.toLowerCase().includes("limit")
+    ) {
+      throw new Error(
+        `Upload rejected by Supabase Storage (${uploadError.message}). Please ensure the 'event-covers' bucket size limit is removed in Supabase (run: UPDATE storage.buckets SET file_size_limit = NULL WHERE id = 'event-covers';).`,
+      );
+    }
     throw new Error(uploadError.message || "Failed to upload image.");
   }
 

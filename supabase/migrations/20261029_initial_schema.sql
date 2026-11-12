@@ -183,12 +183,12 @@ VALUES (
   'event-covers',
   'event-covers',
   true,
-  5242880, -- 5 MB limit
+  null, -- No bucket-level limit
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO UPDATE SET
   public = true,
-  file_size_limit = 5242880,
+  file_size_limit = null,
   allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 -- Storage Policies
